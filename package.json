@@ -2,7 +2,7 @@
   "name": "llama_yields_coverage",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://glebskr.github.io/defillama_yields_coverage/",
+  "homepage": "http://defillama.github.io/defillama_yields_coverage/",
   "dependencies": {
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.3.0",
