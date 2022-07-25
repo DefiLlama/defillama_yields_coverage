@@ -45,7 +45,8 @@ function App() {
               .filter(
                 ({ path }: any) =>
                   path.includes('adaptors') &&
-                  path.includes('index.js')
+                  (path.includes('index.js') ||
+                    path.includes('index.ts'))
               )
               .map((adaptor: any) => ({
                 ...adaptor,
