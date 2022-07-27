@@ -83,6 +83,13 @@ function App() {
       <h1 style={{ marginBottom: 20 }}>
         DefiLlama yields adapters coverage
       </h1>
+      <div>
+        <h2 style={{ marginBottom: 16 }}>
+          Protocols covered:
+          {'  '}
+          {protocols.filter(({ yields }) => yields).length}
+        </h2>
+      </div>
       <Table
         columns={columns}
         dataSource={protocols}
