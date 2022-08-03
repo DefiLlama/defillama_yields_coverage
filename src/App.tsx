@@ -34,6 +34,7 @@ const columns = [
 function App() {
   const [adaptors, setAdaptors] = useState([]);
   const [protocols, setProtocols] = useState([]);
+  const [pools, setPools] = useState([]);
   useEffect(() => {
     fetch(
       'https://api.github.com/repos/DefiLlama/yield-server/git/trees/master?recursive=1'
@@ -75,7 +76,12 @@ function App() {
             setProtocols(normalizedProtocols);
           })
         );
-      });
+      })
+      .then(() =>
+        fetch('https://yields.llama.fi/pools').then((res) =>
+          res.json().then(({ data }) => setPools(data))
+        )
+      );
   }, [adaptors.length]);
 
   return (
@@ -84,10 +90,15 @@ function App() {
         DefiLlama yields adapters coverage
       </h1>
       <div>
-        <h2 style={{ marginBottom: 16 }}>
+        <h2 style={{ marginBottom: 8 }}>
           Protocols covered:
           {'  '}
           {protocols.filter(({ yields }) => yields).length}
+        </h2>
+        <h2 style={{ marginBottom: 16 }}>
+          Pools number:
+          {'  '}
+          {pools.length}
         </h2>
       </div>
       <Table
