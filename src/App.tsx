@@ -86,9 +86,7 @@ function App() {
 
   return (
     <div className="App">
-      <h1 style={{ marginBottom: 20 }}>
-        DefiLlama yields adapters coverage
-      </h1>
+      <h1 style={{ marginBottom: 8 }}>DefiLlama yield adapters</h1>
       <div>
         <h2 style={{ marginBottom: 8 }}>
           Protocols covered:
