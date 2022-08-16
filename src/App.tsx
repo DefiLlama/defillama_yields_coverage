@@ -84,6 +84,8 @@ function App() {
       );
   }, [adaptors.length]);
 
+  const protocolsNames = new Set(pools.map(({ project }) => project));
+
   return (
     <div className="App">
       <h1 style={{ marginBottom: 8 }}>DefiLlama yield adapters</h1>
@@ -91,12 +93,17 @@ function App() {
         <h2 style={{ marginBottom: 8 }}>
           Protocols covered:
           {'  '}
-          {protocols.filter(({ yields }) => yields).length}
+          {protocolsNames.size}
         </h2>
-        <h2 style={{ marginBottom: 16 }}>
+        <h2 style={{ marginBottom: 8 }}>
           Pools number:
           {'  '}
           {pools.length}
+        </h2>
+        <h2 style={{ marginBottom: 16 }}>
+          $1M Pools number:
+          {'  '}
+          {pools.filter(({ tvlUsd }) => tvlUsd > 1_000_000).length}
         </h2>
       </div>
       <Table
