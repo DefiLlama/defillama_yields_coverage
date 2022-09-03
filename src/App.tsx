@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Space, Table, Tag } from 'antd';
-import type { ColumnsType } from 'antd/lib/table';
+import { Table, Tag } from 'antd';
+import millify from 'millify';
 import './App.css';
 
 const columns = [
@@ -94,6 +94,16 @@ function App() {
           Protocols covered:
           {'  '}
           {protocolsNames.size}
+        </h2>
+        <h2 style={{ marginBottom: 8 }}>
+          Pools TVL:
+          {'  '}$
+          {millify(
+            pools.reduce((acc, { tvlUsd }) => acc + tvlUsd, 0),
+            {
+              precision: 2,
+            }
+          )}
         </h2>
         <h2 style={{ marginBottom: 8 }}>
           Pools number:
