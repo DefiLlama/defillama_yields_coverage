@@ -1,0 +1,139 @@
+import { useMemo } from "react"
+import { useProtocols } from "./useProtocols"
+import { usePools } from "./usePools"
+import { useAdapterSlugs } from "./useAdapters"
+import { EXCLUDED_CATEGORIES } from "@/lib/constants"
+import type { EnrichedProtocol, FilterState } from "@/types"
+
+export function useEnrichedProtocols(filters: FilterState) {
+  const { data: protocols, isLoading: protocolsLoading, error: protocolsError } = useProtocols()
+  const { data: pools, isLoading: poolsLoading } = usePools()
+  const { data: adapterSlugs, isLoading: adaptersLoading } = useAdapterSlugs()
+
+  const isLoading = protocolsLoading || poolsLoading || adaptersLoading
+
+  // Get unique projects from pools as additional check for yield adapters
+  const poolProjects = useMemo(() => {
+    if (!pools) return new Set<string>()
+    return new Set(pools.map((pool) => pool.project))
+  }, [pools])
+
+  // Enrich protocols with yield adapter info
+  const enrichedProtocols = useMemo(() => {
+    if (!protocols) return []
+
+    return protocols
+      .filter((protocol) => !EXCLUDED_CATEGORIES.includes(protocol.category as never))
+      .map((protocol): EnrichedProtocol => ({
+        ...protocol,
+        hasYieldAdapter: adapterSlugs.has(protocol.slug) || poolProjects.has(protocol.slug),
+      }))
+  }, [protocols, adapterSlugs, poolProjects])
+
+  // Extract unique chains and categories for filters
+  const { allChains, allCategories } = useMemo(() => {
+    const chains = new Set<string>()
+    const categories = new Set<string>()
+
+    enrichedProtocols.forEach((protocol) => {
+      if (protocol.category) categories.add(protocol.category)
+      protocol.chains?.forEach((chain) => chains.add(chain))
+    })
+
+    return {
+      allChains: Array.from(chains).sort(),
+      allCategories: Array.from(categories).sort(),
+    }
+  }, [enrichedProtocols])
+
+  // Apply filters and sorting
+  const filteredProtocols = useMemo(() => {
+    let result = [...enrichedProtocols]
+
+    // Search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase()
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(searchLower) ||
+          p.description?.toLowerCase().includes(searchLower) ||
+          p.slug.toLowerCase().includes(searchLower)
+      )
+    }
+
+    // Chain filter
+    if (filters.chains.length > 0) {
+      result = result.filter((p) =>
+        filters.chains.some((chain) => p.chains?.includes(chain))
+      )
+    }
+
+    // Category filter
+    if (filters.categories.length > 0) {
+      result = result.filter((p) => filters.categories.includes(p.category))
+    }
+
+    // TVL filter
+    if (filters.minTvl > 0) {
+      result = result.filter((p) => (p.tvl ?? 0) >= filters.minTvl)
+    }
+
+    // Show only missing adapters
+    if (filters.showOnlyMissing) {
+      result = result.filter((p) => !p.hasYieldAdapter)
+    }
+
+    // Sorting
+    const [sortField, sortDirection] = filters.sort.split("-") as [string, "asc" | "desc"]
+    result.sort((a, b) => {
+      let comparison = 0
+      
+      switch (sortField) {
+        case "listedAt":
+          comparison = (b.listedAt ?? 0) - (a.listedAt ?? 0)
+          break
+        case "tvl":
+          comparison = (b.tvl ?? 0) - (a.tvl ?? 0)
+          break
+        case "name":
+          comparison = a.name.localeCompare(b.name)
+          break
+        default:
+          comparison = 0
+      }
+
+      return sortDirection === "asc" ? -comparison : comparison
+    })
+
+    return result
+  }, [enrichedProtocols, filters])
+
+  // Stats
+  const stats = useMemo(() => {
+    const covered = enrichedProtocols.filter((p) => p.hasYieldAdapter).length
+    const total = enrichedProtocols.length
+    const poolsTvl = pools?.reduce((acc, pool) => acc + pool.tvlUsd, 0) ?? 0
+    const poolsCount = pools?.length ?? 0
+    const poolsOver1M = pools?.filter((p) => p.tvlUsd > 1_000_000).length ?? 0
+    const uniqueProjects = poolProjects.size
+
+    return {
+      covered,
+      total,
+      poolsTvl,
+      poolsCount,
+      poolsOver1M,
+      uniqueProjects,
+    }
+  }, [enrichedProtocols, pools, poolProjects])
+
+  return {
+    protocols: filteredProtocols,
+    allChains,
+    allCategories,
+    stats,
+    isLoading,
+    error: protocolsError,
+  }
+}
+
