@@ -1,46 +1,79 @@
-# Getting Started with Create React App
+# DeFi Llama Yield Adapter Finder
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A modern React application to discover DeFi protocols that need yield adapters for DeFi Llama.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- **Search** - Filter protocols by name or description
+- **Chain Filter** - Multi-select filter to find protocols on specific chains
+- **Category Filter** - Filter by category with yield-relevant categories highlighted (Lending, Liquid Staking, DEXs, Yield, Farm, CDP, RWA, Options, Derivatives, etc.)
+- **TVL Filter** - Filter out small protocols by minimum TVL ($100K, $500K, $1M, $5M, $10M, $50M, $100M+)
+- **Sort** - Sort by recently added, TVL (high/low), or name
+- **Adapter Status** - Toggle to show only protocols missing yield adapters
+- **Grid/Table View** - Switch between card grid and table views
+- **Stats Dashboard** - Track coverage metrics including protocols covered, pools, and TVL
+- **DeFi Llama Integration** - Protocol links go directly to DeFi Llama protocol pages
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- **React 19** + **TypeScript**
+- **Vite** for fast development and builds
+- **TanStack Query** for data fetching and caching
+- **Tailwind CSS 4** for styling
+- **shadcn/ui** + **Radix UI** for accessible components
+- **Lucide React** for icons
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Data Sources
 
-### `npm test`
+- [DeFi Llama Protocols API](https://api.llama.fi/protocols) - Protocol data with TVL, categories, chains
+- [DeFi Llama Yields API](https://yields.llama.fi/pools) - Yield pools data
+- [GitHub yield-server](https://github.com/DefiLlama/yield-server) - Existing yield adapters
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Getting Started
 
-### `npm run build`
+### Prerequisites
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- Node.js 18+
+- pnpm
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Installation
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+# Install dependencies
+pnpm install
 
-### `npm run eject`
+# Start development server
+pnpm dev
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+# Build for production
+pnpm build
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+# Preview production build
+pnpm preview
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## Usage
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+1. **Finding protocols without adapters**: Toggle "Missing adapters only" to filter to protocols that don't have yield adapters yet.
 
-## Learn More
+2. **Focus on yield-relevant categories**: In the category filter, categories like Lending, Liquid Staking, DEXs, Options, Derivatives are highlighted as they typically need yield adapters.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+3. **Filter by TVL**: Use the TVL filter to focus on protocols with significant value locked. For example, select "$1M+" to only see protocols with over $1M TVL.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+4. **Discover new protocols**: Sort by "Recently Added" to find newly listed protocols that may need adapters.
+
+5. **Filter by chain**: Use the chain filter to focus on specific blockchains.
+
+6. **View on DeFi Llama**: Click any protocol name to view its full page on DeFi Llama with detailed metrics.
+
+## Contributing
+
+This tool helps identify protocols that need yield adapters for DeFi Llama. If you'd like to contribute an adapter:
+
+1. Check the [yield-server repository](https://github.com/DefiLlama/yield-server)
+2. Follow the adapter guidelines in the repository
+3. Submit a PR with your new adapter
+
+## Licence
+
+MIT

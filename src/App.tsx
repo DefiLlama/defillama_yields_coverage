@@ -1,131 +1,231 @@
-import React, { useEffect, useState } from 'react';
-import { Table, Tag } from 'antd';
-import millify from 'millify';
-import './App.css';
+import { useState } from "react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { LayoutGrid, List, Loader2 } from "lucide-react"
+import { useEnrichedProtocols } from "@/hooks"
+import { FilterBar } from "@/components/filters"
+import { StatsHeader } from "@/components/StatsHeader"
+import { ProtocolCard } from "@/components/ProtocolCard"
+import { ProtocolTable } from "@/components/ProtocolTable"
+import { Button } from "@/components/ui/button"
+import type { FilterState } from "@/types"
 
-const columns = [
-  {
-    title: 'Protocol',
-    dataIndex: 'name',
-    key: 'name',
-    render: (val: any, obj: any) => (
-      <a target={'_blank'} href={obj.url}>
-        {val}
-      </a>
-    ),
-  },
-  {
-    title: 'TVL',
-    dataIndex: 'tvl',
-    key: 'tvl',
-  },
-
-  {
-    title: 'Yields adapter',
-    dataIndex: 'yields',
-    key: 'yields',
-    render: (val: any, obj: any) => {
-      if (val) return <Tag color={'green'}>YES</Tag>;
-      return <Tag color={'red'}>NO</Tag>;
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 2,
     },
   },
-];
+})
 
-function App() {
-  const [adaptors, setAdaptors] = useState([]);
-  const [protocols, setProtocols] = useState([]);
-  const [pools, setPools] = useState([]);
-  useEffect(() => {
-    fetch(
-      'https://api.github.com/repos/DefiLlama/yield-server/git/trees/master?recursive=1'
-    )
-      .then((res) =>
-        res.json().then((res) =>
-          setAdaptors(
-            res.tree
-              .filter(
-                ({ path }: any) =>
-                  path.includes('adaptors') &&
-                  (path.includes('index.js') ||
-                    path.includes('index.ts'))
-              )
-              .map((adaptor: any) => ({
-                ...adaptor,
-                slug: adaptor.path.split('/')[2],
-              }))
-          )
-        )
-      )
-      .then(() => {
-        fetch('https://api.llama.fi/protocols').then((res) =>
-          res.json().then((protocolsRes) => {
-            const normalizedProtocols = protocolsRes
-              .sort((protocolA: any, protocolB: any) =>
-                protocolA.tvl > protocolB.tvl ? -1 : 1
-              )
-              .filter(
-                (protocol: any) =>
-                  !['Chain', 'Bridge', 'CEX'].includes(protocol.category)
-              )
-              .map((protocol: any) => ({
-                ...protocol,
-                yields: !!adaptors.find(
-                  (adaptor: any) => adaptor.slug === protocol.slug
-                ),
-              }));
-            setProtocols(normalizedProtocols);
-          })
-        );
-      })
-      .then(() =>
-        fetch('https://yields.llama.fi/pools').then((res) =>
-          res.json().then(({ data }) => setPools(data))
-        )
-      );
-  }, [adaptors.length]);
-
-  const protocolsNames = new Set(pools.map(({ project }) => project));
-
-  return (
-    <div className="App">
-      <h1 style={{ marginBottom: 8 }}>DefiLlama yield adapters</h1>
-      <div>
-        <h2 style={{ marginBottom: 8 }}>
-          Protocols covered:
-          {'  '}
-          {protocolsNames.size}
-        </h2>
-        <h2 style={{ marginBottom: 8 }}>
-          Pools TVL:
-          {'  '}$
-          {millify(
-            pools.reduce((acc, { tvlUsd }) => acc + tvlUsd, 0),
-            {
-              precision: 2,
-            }
-          )}
-        </h2>
-        <h2 style={{ marginBottom: 8 }}>
-          Pools number:
-          {'  '}
-          {pools.length}
-        </h2>
-        <h2 style={{ marginBottom: 16 }}>
-          $1M Pools number:
-          {'  '}
-          {pools.filter(({ tvlUsd }) => tvlUsd > 1_000_000).length}
-        </h2>
-      </div>
-      <Table
-        columns={columns}
-        dataSource={protocols}
-        rowClassName={(record: any, index) =>
-          record.yields ? '' : 'uncovered'
-        }
-        pagination={{ pageSize: 20 }}
-      />
-    </div>
-  );
+const DEFAULT_FILTERS: FilterState = {
+  search: "",
+  chains: [],
+  categories: [],
+  sort: "listedAt-desc",
+  showOnlyMissing: false,
+  showOnlyYieldRelevant: false,
+  minTvl: 500000,
 }
 
-export default App;
+function YieldAdapterFinder() {
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS)
+  const [viewMode, setViewMode] = useState<"grid" | "table">("table")
+  const [displayCount, setDisplayCount] = useState(50)
+
+  const { protocols, allChains, allCategories, stats, isLoading, error } =
+    useEnrichedProtocols(filters)
+
+  const displayedProtocols = protocols.slice(0, displayCount)
+  const hasMore = protocols.length > displayCount
+
+  const handleLoadMore = () => {
+    setDisplayCount((prev) => prev + 50)
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-destructive mb-2">
+            Failed to load data
+          </h2>
+          <p className="text-muted-foreground">
+            {error instanceof Error ? error.message : "Unknown error occurred"}
+          </p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-background dark">
+      <StatsHeader stats={stats} isLoading={isLoading} />
+
+      <FilterBar
+        filters={filters}
+        onFiltersChange={setFilters}
+        allChains={allChains}
+        allCategories={allCategories}
+      />
+
+      <main className="container mx-auto px-4 py-6">
+        {/* Results header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <span className="text-lg font-medium">
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading protocols...
+                </span>
+              ) : (
+                <>
+                  {protocols.length.toLocaleString()} protocol
+                  {protocols.length !== 1 ? "s" : ""} found
+                </>
+              )}
+            </span>
+            {!isLoading && filters.showOnlyMissing && (
+              <span className="text-sm text-muted-foreground ml-2">
+                (missing yield adapters)
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant={viewMode === "grid" ? "secondary" : "ghost"}
+              size="icon"
+              onClick={() => setViewMode("grid")}
+              title="Grid view"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "secondary" : "ghost"}
+              size="icon"
+              onClick={() => setViewMode("table")}
+              title="Table view"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Loading state */}
+        {isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-border bg-card p-4 animate-pulse"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-10 w-10 rounded-full bg-secondary" />
+                  <div className="flex-1">
+                    <div className="h-4 w-24 bg-secondary rounded mb-2" />
+                    <div className="h-3 w-16 bg-secondary rounded" />
+                  </div>
+                </div>
+                <div className="h-3 w-full bg-secondary rounded mb-2" />
+                <div className="h-3 w-3/4 bg-secondary rounded mb-3" />
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="h-12 bg-secondary rounded" />
+                  <div className="h-12 bg-secondary rounded" />
+                </div>
+                <div className="flex gap-1">
+                  <div className="h-5 w-16 bg-secondary rounded" />
+                  <div className="h-5 w-16 bg-secondary rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Content */}
+        {!isLoading && (
+          <>
+            {protocols.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  No protocols match your filters
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                >
+                  Clear filters
+                </Button>
+              </div>
+            ) : viewMode === "grid" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {displayedProtocols.map((protocol) => (
+                  <ProtocolCard key={protocol.id} protocol={protocol} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
+                <ProtocolTable protocols={displayedProtocols} />
+              </div>
+            )}
+
+            {/* Load more */}
+            {hasMore && (
+              <div className="text-center mt-8">
+                <Button variant="outline" onClick={handleLoadMore}>
+                  Load more ({protocols.length - displayCount} remaining)
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-6 mt-12">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          <p>
+            Data sourced from{" "}
+            <a
+              href="https://defillama.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              DeFi Llama
+            </a>
+            . Yield adapter status from{" "}
+            <a
+              href="https://github.com/DefiLlama/yield-server"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              yield-server repository
+            </a>
+            .
+          </p>
+        </div>
+      </footer>
+    </div>
+  )
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <YieldAdapterFinder />
+    </QueryClientProvider>
+  )
+}
+
+export default App
