@@ -108,14 +108,34 @@ export function useEnrichedProtocols(filters: FilterState) {
     return result
   }, [enrichedProtocols, filters])
 
-  // Stats
+  // Get filtered pool projects based on current filters
+  const filteredPoolProjects = useMemo(() => {
+    if (!pools) return new Set<string>()
+    
+    // Get the slugs of protocols that match the current filters
+    const filteredSlugs = new Set(filteredProtocols.map((p) => p.slug))
+    
+    // Filter pools to only include those from filtered protocols
+    return new Set(
+      pools
+        .filter((pool) => filteredSlugs.has(pool.project))
+        .map((pool) => pool.project)
+    )
+  }, [pools, filteredProtocols])
+
+  // Stats - now based on filtered protocols
   const stats = useMemo(() => {
-    const covered = enrichedProtocols.filter((p) => p.hasYieldAdapter).length
-    const total = enrichedProtocols.length
-    const poolsTvl = pools?.reduce((acc, pool) => acc + pool.tvlUsd, 0) ?? 0
-    const poolsCount = pools?.length ?? 0
-    const poolsOver1M = pools?.filter((p) => p.tvlUsd > 1_000_000).length ?? 0
-    const uniqueProjects = poolProjects.size
+    const covered = filteredProtocols.filter((p) => p.hasYieldAdapter).length
+    const total = filteredProtocols.length
+    
+    // Filter pools based on filtered protocols
+    const filteredSlugs = new Set(filteredProtocols.map((p) => p.slug))
+    const relevantPools = pools?.filter((pool) => filteredSlugs.has(pool.project)) ?? []
+    
+    const poolsTvl = relevantPools.reduce((acc, pool) => acc + pool.tvlUsd, 0)
+    const poolsCount = relevantPools.length
+    const poolsOver1M = relevantPools.filter((p) => p.tvlUsd > 1_000_000).length
+    const uniqueProjects = filteredPoolProjects.size
 
     return {
       covered,
@@ -125,7 +145,7 @@ export function useEnrichedProtocols(filters: FilterState) {
       poolsOver1M,
       uniqueProjects,
     }
-  }, [enrichedProtocols, pools, poolProjects])
+  }, [filteredProtocols, pools, filteredPoolProjects])
 
   return {
     protocols: filteredProtocols,
@@ -136,4 +156,3 @@ export function useEnrichedProtocols(filters: FilterState) {
     error: protocolsError,
   }
 }
-
