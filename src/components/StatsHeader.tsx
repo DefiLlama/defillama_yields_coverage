@@ -56,7 +56,7 @@ export function StatsHeader({ stats, isLoading }: StatsHeaderProps) {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold tracking-tight">
-            DeFi Llama Yield Adapters
+            DefiLlama Yield Adapters
           </h1>
           <p className="text-muted-foreground mt-1">
             Discover protocols that need yield adapters and track coverage
