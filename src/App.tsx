@@ -201,7 +201,7 @@ function YieldAdapterFinder() {
               rel="noopener noreferrer"
               className="text-primary hover:underline"
             >
-              DeFi Llama
+              DefiLlama
             </a>
             . Yield adapter status from{" "}
             <a
